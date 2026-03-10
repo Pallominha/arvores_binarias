@@ -3,6 +3,7 @@ class BinaryTree {
         this.raiz = null;
     }
 
+    // Formato esperado: "6(2(1 3)8)"
     toString() {
         function noParaString(no) {
             if (no === null) {
@@ -10,18 +11,19 @@ class BinaryTree {
             }
 
             let texto = '' + no.valor;
-            const filhos = [];
 
-            if (no.esquerda !== null) {
-                filhos.push('left:' + noParaString(no.esquerda));
-            }
+            if (no.esquerda !== null || no.direita !== null) {
+                const esq = no.esquerda !== null ? noParaString(no.esquerda) : '';
+                const dir = no.direita !== null ? noParaString(no.direita) : null;
 
-            if (no.direita !== null) {
-                filhos.push('right:' + noParaString(no.direita));
-            }
-
-            if (filhos.length > 0) {
-                texto += ' (' + filhos.join(' ') + ')';
+                if (dir !== null) {
+                    const esqEhFolha = no.esquerda === null ||
+                        (no.esquerda.esquerda === null && no.esquerda.direita === null);
+                    const sep = esqEhFolha ? ' ' : '';
+                    texto += '(' + esq + sep + dir + ')';
+                } else {
+                    texto += '(' + esq + ')';
+                }
             }
 
             return texto;
@@ -31,9 +33,10 @@ class BinaryTree {
             return '';
         }
 
-        return 'root:' + noParaString(this.raiz);
+        return noParaString(this.raiz);
     }
 
+    // Cria a árvore e retorna o nó raiz
     createTree(element) {
         this.raiz = null;
 
@@ -52,12 +55,17 @@ class BinaryTree {
         return this.raiz;
     }
 
+    // Insere e retorna true se inserido com sucesso, false caso contrário
     insert(valor) {
+        if (valor === null || valor === undefined) {
+            return false;
+        }
+
         const novoNo = new No(valor);
 
         if (this.raiz === null) {
             this.raiz = novoNo;
-            return;
+            return true;
         }
 
         let atual = this.raiz;
@@ -66,48 +74,49 @@ class BinaryTree {
             if (valor < atual.valor) {
                 if (atual.esquerda === null) {
                     atual.esquerda = novoNo;
-                    return;
+                    return true;
                 }
                 atual = atual.esquerda;
             } else {
                 if (atual.direita === null) {
                     atual.direita = novoNo;
-                    return;
+                    return true;
                 }
                 atual = atual.direita;
             }
         }
+
+        return false;
     }
 
+    // Remove o valor e retorna a árvore atualizada (nó raiz)
     remove(valor) {
         function removerNo(no, valorRemover) {
             if (no === null) {
-                return { no: null, removido: false };
+                return null;
             }
 
             if (valorRemover < no.valor) {
-                const resultado = removerNo(no.esquerda, valorRemover);
-                no.esquerda = resultado.no;
-                return { no, removido: resultado.removido };
+                no.esquerda = removerNo(no.esquerda, valorRemover);
+                return no;
             }
 
             if (valorRemover > no.valor) {
-                const resultado = removerNo(no.direita, valorRemover);
-                no.direita = resultado.no;
-                return { no, removido: resultado.removido };
+                no.direita = removerNo(no.direita, valorRemover);
+                return no;
             }
 
             // no.valor === valorRemover
             if (no.esquerda === null && no.direita === null) {
-                return { no: null, removido: true };
+                return null;
             }
 
             if (no.esquerda === null) {
-                return { no: no.direita, removido: true };
+                return no.direita;
             }
 
             if (no.direita === null) {
-                return { no: no.esquerda, removido: true };
+                return no.esquerda;
             }
 
             // Dois filhos: encontrar successor mais à esquerda da subárvore direita
@@ -117,22 +126,21 @@ class BinaryTree {
             }
 
             no.valor = substituto.valor;
-            const resultado = removerNo(no.direita, substituto.valor);
-            no.direita = resultado.no;
-            return { no, removido: true };
+            no.direita = removerNo(no.direita, substituto.valor);
+            return no;
         }
 
-        const resultado = removerNo(this.raiz, valor);
-        this.raiz = resultado.no;
-        return resultado.removido;
+        this.raiz = removerNo(this.raiz, valor);
+        return this.raiz;
     }
 
+    // Retorna o nó pai; retorna null quando não encontrado (em vez de undefined)
     getFather(valor) {
         if (this.raiz === null || this.raiz.valor === valor) {
-            return undefined;
+            return null;
         }
 
-        let pai = undefined;
+        let pai = null;
         let atual = this.raiz;
 
         while (atual !== null) {
@@ -148,9 +156,10 @@ class BinaryTree {
             }
         }
 
-        return undefined;
+        return null;
     }
 
+    // Retorna a profundidade (altura) da árvore
     calculateTreeDepth() {
         function profundidade(no) {
             if (no === null) {
@@ -169,6 +178,7 @@ class BinaryTree {
         return profundidade(this.raiz);
     }
 
+    // Verifica se a árvore é completa (nenhum nó após um null no BFS)
     isComplete() {
         if (this.raiz === null) {
             return true;
@@ -181,19 +191,24 @@ class BinaryTree {
         while (fila.length > 0) {
             const noAtual = fila.shift();
 
-            if (noAtual.esquerda !== null) {
-                if (encontrouNull) {
+            if (encontrouNull) {
+                if (noAtual.esquerda !== null || noAtual.direita !== null) {
                     return false;
                 }
+                continue;
+            }
+
+            // Filho esquerdo
+            if (noAtual.esquerda !== null) {
                 fila.push(noAtual.esquerda);
             } else {
                 encontrouNull = true;
             }
+            
 
+            // Filho direito
             if (noAtual.direita !== null) {
-                if (encontrouNull) {
-                    return false;
-                }
+                if (encontrouNull) return false;
                 fila.push(noAtual.direita);
             } else {
                 encontrouNull = true;
@@ -213,4 +228,3 @@ class No {
 }
 
 module.exports = BinaryTree;
-
